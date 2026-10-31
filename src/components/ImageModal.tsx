@@ -1,51 +1,41 @@
 import React, { useState } from 'react';
-import { Image as ImageIcon, Sparkles, X, Download, CheckCircle2 } from 'lucide-react';
+import { Image as ImageIcon, Sparkles, X, ArrowLeft, Send } from 'lucide-react';
 
 interface ImageModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onGenerateInChat: (prompt: string, aspectRatio?: string) => void;
 }
 
-export const ImageModal: React.FC<ImageModalProps> = ({ isOpen, onClose }) => {
+export const ImageModal: React.FC<ImageModalProps> = ({
+  isOpen,
+  onClose,
+  onGenerateInChat,
+}) => {
   const [prompt, setPrompt] = useState('');
   const [aspectRatio, setAspectRatio] = useState('1:1');
-  const [isLoading, setIsLoading] = useState(false);
-  const [generatedImg, setGeneratedImg] = useState<{
-    imageUrl: string;
-    prompt: string;
-    model: string;
-  } | null>(null);
 
   if (!isOpen) return null;
 
-  const handleGenerate = async (e: React.FormEvent) => {
+  const handleSendToAssistant = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!prompt.trim() || isLoading) return;
+    const cleanPrompt = prompt.trim();
+    if (!cleanPrompt) return;
 
-    setIsLoading(true);
-    try {
-      const res = await fetch('/api/image/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, aspectRatio }),
-      });
-      const data = await res.json();
-      if (data.success && data.imageUrl) {
-        setGeneratedImg({
-          imageUrl: data.imageUrl,
-          prompt: data.prompt,
-          model: data.model || 'نانو بنانو (Nano Banana)',
-        });
-      }
-    } catch {
-      // fallback
-    } finally {
-      setIsLoading(false);
-    }
+    // Immediately pass prompt into assistant chat and close modal
+    onGenerateInChat(cleanPrompt, aspectRatio);
+    onClose();
   };
 
+  const samplePrompts = [
+    'سيارة مستقبلية طائرة فوق أبراج دبي ليلاً بأضواء نيون زرقاء',
+    'شعار تقني ثلاثي الأبعاد لكلمة OMI على خلفية فضائية زجاجية',
+    'صقر عربي أصيل يقف على قمة جبل وقت الغروب بدقة فائقة 8K',
+    'رائد فضاء عربي يكتشف واحة نخيل خضراء على سطح كوكب المريخ',
+  ];
+
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl">
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 w-full max-w-lg shadow-2xl relative max-h-[90vh] overflow-y-auto chat-container">
         <button
           onClick={onClose}
@@ -60,20 +50,21 @@ export const ImageModal: React.FC<ImageModalProps> = ({ isOpen, onClose }) => {
           </div>
           <h2 className="text-xl font-bold text-white">إنشاء صورة (نانو بنانو) 🎨</h2>
           <p className="text-xs text-slate-400 mt-1">
-            توليد صور بدقة فائقة باستخدام أحدث نماذج نانو بنانو
+            اكتب وصف الصورة وسيقوم <strong className="text-blue-400">المساعد OMI</strong> بتوليدها وعرضها فوراً في المحادثة
           </p>
         </div>
 
-        <form onSubmit={handleGenerate} className="space-y-4">
+        <form onSubmit={handleSendToAssistant} className="space-y-4">
           <div>
-            <label className="block text-xs text-slate-400 mb-1 font-semibold">
-              وصف الصورة المراد إنشاؤها:
+            <label className="block text-xs text-slate-300 mb-1.5 font-semibold">
+              ما الصورة التي تريد إنشاءها؟
             </label>
             <textarea
               rows={3}
+              autoFocus
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
-              placeholder="مثال: شعار مستقبلي ثلاثي الأبعاد بألوان نيون زرقاء..."
+              placeholder="مثال: قطة رائد فضاء لطيفة في الفضاء مع نجوم وكواكب بألوان نيون..."
               className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-blue-500 transition resize-none placeholder-slate-500"
             />
           </div>
@@ -104,59 +95,33 @@ export const ImageModal: React.FC<ImageModalProps> = ({ isOpen, onClose }) => {
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={!prompt.trim() || isLoading}
-            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold py-3 rounded-xl text-sm transition shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2"
-          >
-            {isLoading ? (
-              <>
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>جاري معالجة وتوليد الصورة بنانو بنانو...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                <span>توليد الصورة الآن ⚡</span>
-              </>
-            )}
-          </button>
-        </form>
-
-        {/* نتيجة الصورة */}
-        {generatedImg && (
-          <div className="mt-5 p-4 bg-slate-950 border border-blue-500/40 rounded-2xl space-y-3 animate-fadeIn">
-            <div className="flex items-center justify-between text-xs text-emerald-400 font-semibold">
-              <span className="flex items-center gap-1">
-                <CheckCircle2 className="w-4 h-4" />
-                تم التوليد بنجاح
-              </span>
-              <span className="text-[11px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">
-                نانو بنانو
-              </span>
-            </div>
-
-            <div className="rounded-xl overflow-hidden bg-black border border-slate-800">
-              <img
-                src={generatedImg.imageUrl}
-                alt={generatedImg.prompt}
-                className="w-full h-auto object-cover"
-              />
-            </div>
-
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-xs text-slate-400 italic">"{generatedImg.prompt}"</span>
-              <a
-                href={generatedImg.imageUrl}
-                download="chat_omi_nano_image.png"
-                className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>تحميل الصورة</span>
-              </a>
+          {/* أفكار مقترحة سريعة */}
+          <div>
+            <span className="text-[11px] text-slate-400 block mb-1.5">أفكار مقترحة سريعة (اضغط للتجربة):</span>
+            <div className="space-y-1">
+              {samplePrompts.slice(0, 3).map((sample, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setPrompt(sample)}
+                  className="w-full text-right p-2 rounded-lg bg-slate-800/60 hover:bg-slate-800 text-[11px] text-slate-300 hover:text-white transition truncate block border border-slate-700/50"
+                >
+                  💡 {sample}
+                </button>
+              ))}
             </div>
           </div>
-        )}
+
+          <button
+            type="submit"
+            disabled={!prompt.trim()}
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl text-sm transition shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 active:scale-95"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>إنشاء الصورة وعرضها في المساعد OMI 🚀</span>
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+        </form>
       </div>
     </div>
   );

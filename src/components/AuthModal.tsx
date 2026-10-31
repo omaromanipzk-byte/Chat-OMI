@@ -1,47 +1,78 @@
-import React, { useState, useEffect } from 'react';
-import { User, UserRole } from '../types';
-import { ShieldCheck, User as UserIcon, ArrowRight, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { UserAccount, UserRole, validateUsername } from '../types';
+import {
+  getAllAccounts,
+  loginOrCreateAccount,
+  INITIAL_ACCOUNT_POINTS,
+} from '../services/accountService';
+import {
+  ShieldCheck,
+  User as UserIcon,
+  ArrowRight,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  Coins,
+} from 'lucide-react';
 
 interface AuthModalProps {
-  onLogin: (user: User) => void;
-  defaultRole?: UserRole;
+  onLoginSuccess: (account: UserAccount) => void;
+  onGoToAdmin: () => void;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ onLogin, defaultRole = 'user' }) => {
-  const [username, setUsername] = useState('');
-  const [role, setRole] = useState<UserRole>(defaultRole);
+export const AuthModal: React.FC<AuthModalProps> = ({
+  onLoginSuccess,
+  onGoToAdmin,
+}) => {
+  const [usernameInput, setUsernameInput] = useState('');
+  const [role, setRole] = useState<UserRole>('user');
+  const [errorMessage, setErrorMessage] = useState('');
 
-  useEffect(() => {
-    // If URL hash is #admin, suggest admin role and name
-    if (window.location.hash === '#admin') {
-      setRole('admin');
-      if (!username) setUsername('مدير النظام');
-    }
-  }, []);
+  const savedAccounts = Object.values(getAllAccounts()).sort(
+    (a, b) => (b.lastActive || 0) - (a.lastActive || 0)
+  );
+
+  const clean = usernameInput.trim().toLowerCase();
+  const letterCount = (clean.match(/[a-z]/g) || []).length;
+  const isLengthFive = clean.length === 5;
+  const isEnglishOnly = clean.length > 0 && /^[a-z0-9]+$/.test(clean);
+  const hasFourLetters = letterCount >= 4;
+  const isValidSoFar = isLengthFive && isEnglishOnly && hasFourLetters;
+
+  // Check if account already exists
+  const existingAccount = clean && isValidSoFar ? savedAccounts.find(a => a.username === clean) : null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const finalName = username.trim() || (role === 'admin' ? 'مدير النظام' : 'مستخدم OMI');
-    onLogin({
-      username: finalName,
-      role,
-      points: role === 'admin' ? 99999 : 100,
-    });
+    setErrorMessage('');
+
+    const res = loginOrCreateAccount(usernameInput, role);
+    if (!res.success || !res.account) {
+      setErrorMessage(res.error || 'اسم المستخدم غير متوافق مع الشروط.');
+      return;
+    }
+
+    onLoginSuccess(res.account);
   };
 
-  const handleQuickLogin = (selectedRole: UserRole, defaultName: string) => {
-    onLogin({
-      username: defaultName,
-      role: selectedRole,
-      points: selectedRole === 'admin' ? 99999 : 100,
-    });
+  const handleSelectExisting = (acc: UserAccount) => {
+    const res = loginOrCreateAccount(acc.username, acc.role);
+    if (res.success && res.account) {
+      onLoginSuccess(res.account);
+    }
+  };
+
+  const handleQuickPreset = (presetName: string) => {
+    setUsernameInput(presetName);
+    setErrorMessage('');
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-800 p-6 sm:p-8 rounded-3xl w-full max-w-md shadow-2xl relative overflow-hidden">
-        {/* Ambient Top Glow */}
-        <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
+    <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
+      <div className="bg-slate-900 border border-slate-800 p-6 sm:p-8 rounded-3xl w-full max-w-md shadow-2xl relative overflow-hidden my-auto chat-container">
+        {/* Glow Header */}
+        <div className="absolute top-0 right-0 left-0 h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
 
         <div className="text-center mb-6">
           <div className="relative inline-flex mb-3">
@@ -56,76 +87,169 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLogin, defaultRole = 'us
           <h2 className="text-2xl font-black text-white">
             تسجيل الدخول إلى Chat <span className="text-blue-400">OMI</span>
           </h2>
-          <p className="text-slate-400 text-xs sm:text-sm mt-1 flex items-center justify-center gap-1">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>المساعد خليل في خدمتك</span>
+          <p className="text-slate-400 text-xs sm:text-sm mt-1 flex items-center justify-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+            <span>المساعد OMI في خدمتك • تطوير عمر الذهلي</span>
           </p>
         </div>
 
+        {errorMessage && (
+          <div className="mb-4 p-3 bg-red-950/60 border border-red-500/40 rounded-xl text-red-300 text-xs flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs text-slate-400 mb-1.5 font-medium">
-              اسم المستخدم أو البريد
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs text-slate-300 font-semibold">
+                اسم المستخدم بالإنجليزية (5 خانات):
+              </label>
+              <span className="text-[11px] font-mono text-slate-400">
+                {clean.length} / 5 خانات
+              </span>
+            </div>
+
             <input
               type="text"
-              required
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-              placeholder="مثال: أحمد، سارة، خليل..."
-              className="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition"
+              autoFocus
+              maxLength={5}
+              value={usernameInput}
+              onChange={e => {
+                setUsernameInput(e.target.value.toLowerCase().replace(/\s/g, ''));
+                setErrorMessage('');
+              }}
+              placeholder="مثال: omar1 أو alexa"
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 text-base font-mono tracking-wider focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition text-center"
             />
+
+            {/* شروط اسم المستخدم بالإنجليزية */}
+            <div className="mt-2.5 p-2.5 bg-slate-950/80 rounded-xl border border-slate-800/80 space-y-1.5 text-[11px]">
+              <div className="flex items-center justify-between">
+                <span className={isLengthFive ? 'text-emerald-400 font-medium' : 'text-slate-400'}>
+                  • يتكون من 5 خانات بالضبط
+                </span>
+                {isLengthFive ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <span className="text-slate-600">○</span>}
+              </div>
+              <div className="flex items-center justify-between">
+                <span className={isEnglishOnly ? 'text-emerald-400 font-medium' : 'text-slate-400'}>
+                  • حروف وأرقام إنجليزية فقط (a-z, 0-9)
+                </span>
+                {isEnglishOnly ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <span className="text-slate-600">○</span>}
+              </div>
+              <div className="flex items-center justify-between">
+                <span className={hasFourLetters ? 'text-emerald-400 font-medium' : 'text-slate-400'}>
+                  • يحتوي على 4 أحرف إنجليزية على الأقل ({letterCount}/4)
+                </span>
+                {hasFourLetters ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <span className="text-slate-600">○</span>}
+              </div>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-xs text-slate-400 mb-1.5 font-medium">
-              نوع الحساب
-            </label>
-            <select
-              value={role}
-              onChange={e => setRole(e.target.value as UserRole)}
-              className="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition"
-            >
-              <option value="user">مستخدم عادي (رصيد 100 نقطة)</option>
-              <option value="admin">مدير النظام (Admin - لوحة تحكم كاملة)</option>
-            </select>
-          </div>
+          {/* حالة الحساب: هل هو موجود أم جديد */}
+          {isValidSoFar && (
+            <div className="p-3 rounded-xl border text-xs animate-fadeIn bg-slate-800/80 border-blue-500/30 text-slate-300">
+              {existingAccount ? (
+                <div className="flex items-center justify-between">
+                  <span className="text-blue-300 font-medium flex items-center gap-1.5">
+                    <UserIcon className="w-3.5 h-3.5 text-blue-400" />
+                    حساب موجود مسبقاً (@{existingAccount.username})
+                  </span>
+                  <span className="text-amber-400 font-bold font-mono">
+                    🪙 {existingAccount.points} نقطة
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <span className="text-emerald-400 font-medium flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                    حساب جديد مستقل خاص بك!
+                  </span>
+                  <span className="text-amber-400 font-bold font-mono">
+                    🪙 {INITIAL_ACCOUNT_POINTS} نقطة ترحيبية
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-blue-600/30 active:scale-95 text-sm flex items-center justify-center gap-2"
+            disabled={!isValidSoFar}
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-blue-600/30 active:scale-95 text-sm flex items-center justify-center gap-2"
           >
-            <span>دخول / إنشاء حساب</span>
+            <span>{existingAccount ? 'دخول إلى حسابي' : 'إنشاء الحساب وبدء المحادثة'}</span>
             <ArrowRight className="w-4 h-4 rotate-180" />
           </button>
         </form>
 
-        {/* Quick Demo Shortcuts */}
-        <div className="mt-6 pt-5 border-t border-slate-800/80">
-          <div className="text-[11px] text-slate-500 text-center mb-2.5 font-medium">
-            أو اختر تسجيل الدخول التجريبي بنقرة واحدة:
+        {/* أسماء مقترحة سريعة صالحة */}
+        <div className="mt-4 pt-3 border-t border-slate-800/80">
+          <div className="text-[11px] text-slate-400 mb-2 font-medium flex items-center justify-between">
+            <span>نماذج أسامي إنجليزية متوافقة (5 خانات):</span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('user', 'مستخدم OMI')}
-              className="bg-slate-800/80 hover:bg-slate-750 border border-slate-700/80 text-slate-300 hover:text-white p-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition active:scale-95"
-            >
-              <UserIcon className="w-3.5 h-3.5 text-blue-400" />
-              <span>مستخدم (100 نقطة)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                window.location.hash = '#admin';
-                handleQuickLogin('admin', 'مدير النظام');
-              }}
-              className="bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 hover:text-white p-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition active:scale-95"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
-              <span>مدير (Admin)</span>
-            </button>
+          <div className="flex flex-wrap gap-1.5">
+            {['omar1', 'alexa', 'user8', 'nadia', 'samir', 'cloud'].map(name => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => handleQuickPreset(name)}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1 rounded-lg text-xs font-mono border border-slate-700 transition"
+              >
+                @{name}
+              </button>
+            ))}
           </div>
+        </div>
+
+        {/* الحسابات المسجلة على هذا الجهاز */}
+        {savedAccounts.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-slate-800/80">
+            <div className="text-[11px] text-slate-400 mb-2 font-medium flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 text-slate-400" />
+              <span>الحسابات السابقة على هذا الجهاز (كل حساب مستقل برصيده):</span>
+            </div>
+            <div className="space-y-1.5 max-h-32 overflow-y-auto chat-container pr-1">
+              {savedAccounts.slice(0, 4).map(acc => (
+                <button
+                  key={acc.username}
+                  type="button"
+                  onClick={() => handleSelectExisting(acc)}
+                  className="w-full bg-slate-800/60 hover:bg-slate-750 border border-slate-700/60 p-2 rounded-xl text-xs flex items-center justify-between transition group"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-blue-600/30 text-blue-300 flex items-center justify-center font-mono font-bold text-[11px]">
+                      {acc.username.substring(0, 2).toUpperCase()}
+                    </div>
+                    <span className="font-mono text-white group-hover:text-blue-300">
+                      @{acc.username}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-amber-400 font-mono font-bold">
+                      {acc.points} نقطة
+                    </span>
+                    <span className="text-[10px] text-slate-400 group-hover:text-white">
+                      دخول ←
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* زر سفلي: بوابة المدير */}
+        <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-col gap-2 text-center">
+          <button
+            type="button"
+            onClick={onGoToAdmin}
+            className="text-xs text-purple-400 hover:text-purple-300 transition flex items-center justify-center gap-1.5 py-1.5"
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>بوابة مدير النظام (#admin)</span>
+          </button>
         </div>
       </div>
     </div>

@@ -45,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-slate-400">
-              <span className="font-medium text-slate-300">المساعد خليل</span>
+              <span className="font-medium text-slate-300">المساعد OMI</span>
               <span>•</span>
               <span className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[11px] font-medium ${
                 isAdmin

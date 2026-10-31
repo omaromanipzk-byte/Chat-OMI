@@ -15,6 +15,8 @@ export const BrowserModal: React.FC<BrowserModalProps> = ({ isOpen, onClose }) =
     query: string;
   } | null>(null);
 
+  const [errorMessage, setErrorMessage] = useState('');
+
   if (!isOpen) return null;
 
   const handleSearch = async (searchQuery?: string) => {
@@ -22,22 +24,28 @@ export const BrowserModal: React.FC<BrowserModalProps> = ({ isOpen, onClose }) =
     if (!q || isLoading) return;
 
     setIsLoading(true);
+    setErrorMessage('');
+
     try {
       const res = await fetch('/api/browser/search', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ query: q }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
         setSearchResult({
           text: data.text,
           sources: data.sources || [],
           query: data.query,
         });
+      } else {
+        setErrorMessage(data.error || 'تعذر البحث في الويب حالياً. يرجى المحاولة لاحقاً.');
       }
-    } catch {
-      // fallback
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'حدث خطأ في الاتصال بالخادم.');
     } finally {
       setIsLoading(false);
     }
@@ -62,6 +70,12 @@ export const BrowserModal: React.FC<BrowserModalProps> = ({ isOpen, onClose }) =
             تصفح الإنترنت وابحث عن أحدث المعلومات الحية والمصادر المباشرة
           </p>
         </div>
+
+        {errorMessage && (
+          <div className="mb-4 p-3 bg-red-950/40 border border-red-500/40 rounded-xl text-red-300 text-xs">
+            {errorMessage}
+          </div>
+        )}
 
         {/* حقل البحث */}
         <form

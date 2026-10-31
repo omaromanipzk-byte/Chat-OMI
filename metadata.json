@@ -1,6 +1,6 @@
 {
   "name": "Chat OMI",
-  "description": "Chat OMI - المساعد الذكي خليل مع نظام النقاط والأكواد الترويجية وإدارة الصلاحيات",
+  "description": "Chat OMI - المساعد الذكي OMI مع نظام حسابات المستخدمين والنقاط والأكواد وإدارة الصلاحيات",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -83,7 +83,7 @@ export const ChatSection: React.FC<ChatSectionProps> = ({
     const greeting: ChatMessage = {
       id: 'msg-welcome',
       role: 'assistant',
-      text: `أهلاً بك يا **${currentUser.username}**! أنا **المساعد خليل**، المساعد الذكي الرسمي لمنصة **Chat OMI**.\n\nكيف يمكنني مساعدتك اليوم؟ تذكر أن المحادثات معي مجانية تماماً ولا تخصم أي نقاط من رصيدك!`,
+      text: `أهلاً بك يا **${currentUser.username}**! أنا **المساعد OMI**، المساعد الذكي الرسمي لمنصة **Chat OMI**.\n\nكيف يمكنني مساعدتك اليوم؟ تذكر أن المحادثات معي مجانية تماماً ولا تخصم أي نقاط من رصيدك!`,
       timestamp: Date.now(),
     };
     setMessages([greeting]);
@@ -234,7 +234,7 @@ export const ChatSection: React.FC<ChatSectionProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-sm text-slate-100">المساعد خليل</span>
+              <span className="font-bold text-sm text-slate-100">المساعد OMI</span>
               <span className="text-[11px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-1 font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 سرعة فائقة (Stream)
@@ -287,7 +287,7 @@ export const ChatSection: React.FC<ChatSectionProps> = ({
                   <div className="flex items-center justify-between gap-3 mb-2 text-xs text-slate-400 pb-1 border-b border-slate-700/40">
                     <span className="font-semibold text-blue-400 flex items-center gap-1">
                       <Sparkles className="w-3 h-3" />
-                      المساعد خليل
+                      المساعد OMI
                     </span>
                     <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition">
                       <button
@@ -328,7 +328,7 @@ export const ChatSection: React.FC<ChatSectionProps> = ({
                     ) : (
                       <div className="flex items-center gap-2 text-slate-400 py-1">
                         <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
-                        <span className="text-xs">المساعد خليل يكتب الآن...</span>
+                        <span className="text-xs">المساعد OMI يكتب الآن...</span>
                       </div>
                     )}
                     {msg.isStreaming && (
@@ -390,7 +390,7 @@ export const ChatSection: React.FC<ChatSectionProps> = ({
               type="text"
               value={input}
               onChange={e => setInput(e.target.value)}
-              placeholder="اكتب رسالتك إلى المساعد خليل..."
+              placeholder="اكتب رسالتك إلى المساعد OMI..."
               disabled={isStreaming}
               className="w-full bg-slate-800/90 border border-slate-700/80 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition pr-4 pl-10"
             />
@@ -418,7 +418,7 @@ export const ChatSection: React.FC<ChatSectionProps> = ({
 
         <div className="mt-2 text-center text-[11px] text-slate-400 flex items-center justify-center gap-1">
           <Sparkles className="w-3 h-3 text-emerald-400" />
-          <span>المحادثات مع المساعد خليل مجانية بالكامل 100% ولا يتم خصم أي نقاط من رصيدك.</span>
+          <span>المحادثات مع المساعد OMI مجانية بالكامل 100% ولا يتم خصم أي نقاط من رصيدك.</span>
         </div>
       </div>
     </div>
